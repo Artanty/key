@@ -1,0 +1,20 @@
+
+CREATE TABLE backend_services (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project VARCHAR(50) NOT NULL,
+  url VARCHAR(255) NOT NULL UNIQUE,
+  base_key VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE api_tokens (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  target VARCHAR(50) NOT NULL,
+  requester VARCHAR(50) NOT NULL,
+  api_key VARCHAR(255) NOT NULL UNIQUE,
+  target_url VARCHAR(255) NOT NULL,
+  requester_url VARCHAR(255) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX (api_key, expires_at)
+);
