@@ -2,9 +2,9 @@ import express, { Request, Response } from 'express';
 import crypto from 'crypto';
 import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
-import checkDBConnection from './core/db_check_connection.js'
-import createPool from './core/db_connection.js';
-import { dd } from './utils/dd.js';
+import checkDBConnection from './core/db_check_connection'
+import createPool from './core/db_connection';
+import { dd } from './utils/dd';
 
 dotenv.config();
 const PORT = process.env.PORT || 3000;
@@ -41,6 +41,11 @@ function generateApiToken(baseKey: string, requester: string): { token: string; 
  * Каждый бэкенд регистрируется при сборке
  * и обновляет ключ при пересборке.
  * */
+// req.body {
+//    "project": "@back", // идентификатор бэкенд проекта
+//    "url": "http://localhost:3202" // адрес, на котором этом проект развернут, т е с которого будет отправлен запрос
+//  }
+ 
 app.post('/register', async (req: Request, res: Response) => {
   const pool = createPool();
   const connection = await pool.getConnection();
@@ -89,6 +94,11 @@ app.post('/register', async (req: Request, res: Response) => {
  * Перед тем, как сделать запрос на действие в другой сервис
  * получаем апи токен для этого.
  * */
+// headers: {
+//        'X-Project-Id': process.env.PROJECT_ID, // e.g. 'au@back' - кто будет делать запрос
+//        'X-Project-Domain-Name': requesterUrl, - куда будет делать запрос
+//        'X-Api-Key': process.env.BASE_KEY - ключ бэк-проекта выданный при register
+//      }
 app.post('/get-token', async (req: Request, res: Response) => {
   const requesterProject = req.headers['x-project-id'] as string;
   const requesterUrl = req.headers['x-project-domain-name'] as string;
@@ -112,7 +122,6 @@ app.post('/get-token', async (req: Request, res: Response) => {
     });
   }
 
-
   const pool = createPool();
   const connection = await pool.getConnection()
   try {
@@ -129,8 +138,9 @@ app.post('/get-token', async (req: Request, res: Response) => {
     ) {
       dd('mismatch')
       dd('requesterProject: ' + requesterProject)
-      dd('requesterUrl: ' + requesterUrl)
-      dd('requesterBaseKey: ' + requesterBaseKey);
+      dd('[REQUEST] | [DATABASE]')
+      dd('requesterUrl: ' + requesterUrl + ' | ' + requester[0].url)
+      dd('requesterBaseKey: ' + requesterBaseKey + ' | ' + requester[0].base_key);
       return res.status(403).json({ error: 'Requester not registered or URL mismatch or base key rotten' });
     }  
 
@@ -151,6 +161,7 @@ app.post('/get-token', async (req: Request, res: Response) => {
     );
 
     if ((existingToken as unknown as ApiToken[]).length) {
+      dd('existingToken is returned of target [' + targetProject + '] goes to [' + requesterProject + ']')
       dd(existingToken)
       return res.json({ 
         apiKey: existingToken[0].api_key,
@@ -169,7 +180,7 @@ app.post('/get-token', async (req: Request, res: Response) => {
     );
     dd('createdKey')
     dd(createdKey)
-    dd(targetProject, requesterProject, token, targetUrl, requesterUrl, expiresAt)
+    dd({ targetProject, requesterProject, token, targetUrl, requesterUrl, expiresAt })
     dd({ apiKey: token, expiresAt })
     await connection.commit();
     res.json({ apiKey: token, expiresAt });
@@ -187,13 +198,13 @@ app.post('/get-token', async (req: Request, res: Response) => {
  * он отправляет на валидацию креды.
  * */
 app.post('/validate', async (req: Request, res: Response) => {
-  
+  dd('api validate STARTED');
   const validatorProject = req.headers['x-project-id'] as string;
   const validatorUrl = req.headers['x-project-domain-name'] as string;
   const validatorBase = req.headers['x-api-key'] as string;
   const requesterProject = req.body.requesterProject as string;
   const requesterApiKey = req.body.requesterApiKey as string;
-  const requesterUrl = req.body.requesterUrl as string;
+  const requesterUrl = req.body.requesterUrl as string; //todo fix
 
   dd('validatorProject: ' + validatorProject)
   dd('validatorUrl: ' + validatorUrl)
@@ -232,9 +243,33 @@ app.post('/validate', async (req: Request, res: Response) => {
       token[0].target_url !== validatorUrl || 
       token[0].requester !== requesterProject ||
       token[0].requester_url !== requesterUrl) {
+      // Log each check individually to see what's causing the issue
+      let reasons: string[] = [];
+
+      if (!(token as ApiToken[]).length) {
+        reasons.push("No tokens found");
+      }
+
+      if (token[0].target !== validatorProject) {
+        reasons.push(`Target mismatch: expected ${validatorProject}, got ${token[0].target}`);
+      }
+
+      if (token[0].target_url !== validatorUrl) {
+        reasons.push(`Target URL mismatch: expected ${validatorUrl}, got ${token[0].target_url}`);
+      }
+
+      if (token[0].requester !== requesterProject) {
+        reasons.push(`Requester mismatch: expected ${requesterProject}, got ${token[0].requester}`);
+      }
+
+      if (token[0].requester_url !== requesterUrl) {
+        reasons.push(`Requester URL mismatch: expected ${requesterUrl}, got ${token[0].requester_url}`);
+      }
+
+      console.error('Validation failed:', reasons.join(', '));
       return res.status(403).json({ valid: false, error: 'Invalid or expired key' });
     }
-
+    dd('api validate SUCCEED');
     res.json({ 
       valid: true, 
       requester: token[0].requester

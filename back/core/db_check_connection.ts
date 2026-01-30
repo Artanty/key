@@ -1,4 +1,4 @@
-import createPool from './db_connection.js'
+import createPool from './db_connection'
 
 async function checkDBConnection() {
   console.log('Checking DB connection...')

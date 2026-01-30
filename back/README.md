@@ -18,3 +18,6 @@ CREATE TABLE api_tokens (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX (api_key, expires_at)
 );
+
+## todo
+- формировать апи ключ, используя базовый ключ + отправитель + приемник
