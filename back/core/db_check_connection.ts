@@ -1,4 +1,7 @@
 import createPool from './db_connection'
+import { handleDatabaseError } from './db_handle_error.js'
+import { logger } from '../utils/logger.js'
+
 
 async function checkDBConnection() {
   console.log('Checking DB connection...')
@@ -8,8 +11,7 @@ async function checkDBConnection() {
     const [rows] = await pool.query(`SELECT COUNT(*) AS table_count FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = "${process.env.DB_DATABASE}";`);
     console.log(`Database ${process.env.DB_DATABASE} with ${rows[0]?.table_count} tables is successfully connected.`);
   } catch (error) {
-    console.log('DB connection error: ')
-    console.log(error)
+    return handleDatabaseError(error, logger)
   }
 }
 
