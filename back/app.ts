@@ -299,6 +299,7 @@ app.get('/get-updates', async (req: Request, res: Response) => {
   res.json(response);
 });
 
+
 app.listen(PORT, () => {
   dd(`Server is running on port ${PORT}`)
   checkDBConnection()
