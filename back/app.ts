@@ -236,7 +236,9 @@ app.post('/validate', async (req: Request, res: Response) => {
      WHERE api_key = ? AND expires_at > NOW()`,
       [requesterApiKey]
     );
-    dd(token)
+
+    dd(token);
+
     if (!(token as ApiToken[]).length || 
       token[0].target !== validatorProject || 
       token[0].target_url !== validatorUrl || 
