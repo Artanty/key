@@ -283,6 +283,22 @@ app.post('/validate', async (req: Request, res: Response) => {
   }
 });
 
+app.get('/get-updates', async (req: Request, res: Response) => {
+
+  const response: any = {
+      domain: process.env.VERCEL_URL,
+      version: process.env.TAG_VERSION,
+      commit_id: process.env.COMMIT_ID,
+      commit_message: process.env.COMMIT,
+      project_id: process.env.PROJECT_ID,
+      slave_acc: process.env.SLAVE_ACC,
+      slave_repo: process.env.SLAVE_REPO,
+      namespace: process.env.NAMESPACE,
+  };
+
+  res.json(response);
+});
+
 app.listen(PORT, () => {
   dd(`Server is running on port ${PORT}`)
   checkDBConnection()
