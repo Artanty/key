@@ -1,6 +1,5 @@
 import express, { Request, Response } from 'express';
 import crypto from 'crypto';
-import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
 import checkDBConnection from './core/db_check_connection'
 import createPool from './core/db_connection';
