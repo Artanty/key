@@ -286,7 +286,7 @@ app.post('/validate', async (req: Request, res: Response) => {
 app.get('/get-updates', async (req: Request, res: Response) => {
 
   const response: any = {
-      domain: process.env.VERCEL_URL,
+      // domain: process.env.VERCEL_URL,
       version: process.env.TAG_VERSION,
       commit_id: process.env.COMMIT_ID,
       commit_message: process.env.COMMIT,
