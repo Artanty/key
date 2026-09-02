@@ -27,7 +27,6 @@ interface ApiToken {
   expires_at: Date;
 }
 
-
 function generateApiToken(baseKey: string, requester: string): { token: string; expiresAt: Date } {
   const expiresAt = new Date(Date.now() + 24 * 3600 * 1000);
   const token = crypto
