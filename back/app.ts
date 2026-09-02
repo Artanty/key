@@ -297,6 +297,7 @@ app.get('/get-updates', async (req: Request, res: Response) => {
       slave_repo: process.env.SLAVE_REPO,
       namespace: process.env.NAMESPACE,
       public_ip,
+      set_envs: Object.keys(process.env).filter(k => !!process.env[k]),
   };
 
   res.json(response);

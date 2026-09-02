@@ -44,3 +44,4 @@ Progress:
 - Imported `getPublicIP` from `core/get_public_ip.js` (already existed) into `app.ts`.
 - Added `public_ip` (awaited) to `GET /get-updates` response.
 - `npx tsc --noEmit` passes.
+- Added `set_envs` to response — list of env var names that are set (non-empty), no values.
