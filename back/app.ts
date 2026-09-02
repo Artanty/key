@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import checkDBConnection from './core/db_check_connection'
 import createPool from './core/db_connection';
 import { dd } from './utils/dd';
+import { getPublicIP } from './core/get_public_ip';
 
 dotenv.config();
 const PORT = process.env.PORT || 3000;
@@ -284,6 +285,7 @@ app.post('/validate', async (req: Request, res: Response) => {
 });
 
 app.get('/get-updates', async (req: Request, res: Response) => {
+  const public_ip = await getPublicIP();
 
   const response: any = {
       // domain: process.env.VERCEL_URL,
@@ -294,6 +296,7 @@ app.get('/get-updates', async (req: Request, res: Response) => {
       slave_acc: process.env.SLAVE_ACC,
       slave_repo: process.env.SLAVE_REPO,
       namespace: process.env.NAMESPACE,
+      public_ip,
   };
 
   res.json(response);
