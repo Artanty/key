@@ -105,4 +105,16 @@ Planned next steps:
 Progress:
 - Added early return in `back/app.ts` `/validate` handler (line ~216): when `validatorProject` is `safe@back` or `key@back`, returns `{ valid: true, requester: requesterProject }` immediately, skipping DB checks.
 - `npx tsc --noEmit` passes (exit 0).
-- Also updated safe@back's middleware (`safe/back/middlewares/validateApiKey.ts`): bypass condition now includes `safe@back` in addition to `key@back`. Typecheck passes.
+- Also updated safe@back's middleware (`safe/back/middlewares/validateApiKey.ts`): bypass condition now includes `safe@back-d` and `key@back-d`. Typecheck passes.
+## Task: fix backend_services lookup to match project AND url
+Context: A project deploy always runs on different machines with the same project key (e.g. key@back-d) but different URLs/base_keys. The old queries selected by `project` alone and used the first row, which was wrong.
+
+Planned next steps:
+1. In `back/app.ts`, change `/get-token` requester & target queries and `/validate` validator query to match `project = ? AND url = ?`.
+2. `npx tsc --noEmit`.
+3. Update DECISIONS.md.
+
+Progress:
+- `/get-token`: requester query now `WHERE project = ? AND url = ?`, checks `base_key` only (URL matched in SQL). Target query now `WHERE project = ? AND url = ?`, only checks row exists.
+- `/validate`: validator query now `WHERE project = ? AND url = ?`, checks `base_key` only.
+- `npx tsc --noEmit` passes (exit 0).

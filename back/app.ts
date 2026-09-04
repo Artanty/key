@@ -78,7 +78,10 @@ app.post('/register', async (req: Request, res: Response) => {
         'INSERT INTO backend_services (project, url, base_key) VALUES (?, ?, ?)',
         [project, url, baseKey]
       );
-      dd(`Registered new service: ${project}`);
+      dd(`Registered new service:`);
+      dd(`project: ${project}`);
+      dd(`url: ${url}`);
+      dd(`baseKey: ${baseKey}`);
     }
     await connection.commit();
     res.json({ baseKey });
@@ -128,12 +131,11 @@ app.post('/get-token', async (req: Request, res: Response) => {
     await connection.beginTransaction();
     // Check requester registration and URL match
     const [requester] = await connection.execute(
-      'SELECT url, base_key FROM backend_services WHERE project = ?',
-      [requesterProject]
+      'SELECT url, base_key FROM backend_services WHERE project = ? AND url = ?',
+      [requesterProject, requesterUrl]
     );
   
     if (!(requester as BackendService[]).length || 
-      requester[0].url !== requesterUrl ||
       requester[0].base_key !== requesterBaseKey
     ) {
       dd('mismatch')
@@ -146,10 +148,10 @@ app.post('/get-token', async (req: Request, res: Response) => {
 
     // Check target
     const [target] = await connection.execute(
-      'SELECT url, base_key FROM backend_services WHERE project = ?',
-      [targetProject]
+      'SELECT url, base_key FROM backend_services WHERE project = ? AND url = ?',
+      [targetProject, targetUrl]
     );
-    if (!(target as BackendService[]).length || target[0].url !== targetUrl) {
+    if (!(target as BackendService[]).length) {
       return res.status(403).json({ error: 'Invalid target or URL mismatch' });
     }
 
@@ -213,7 +215,7 @@ app.post('/validate', async (req: Request, res: Response) => {
   dd('requesterApiKey: ' + requesterApiKey)
   dd('requesterUrl: ' + requesterUrl)
 
-  if (validatorProject === 'safe@back' || validatorProject === 'key@back') {
+  if (validatorProject === 'safe@back-d' || validatorProject === 'key@back-d') {
     dd('validate BYPASSED for ' + validatorProject);
     return res.json({ valid: true, requester: requesterProject });
   }
@@ -225,11 +227,10 @@ app.post('/validate', async (req: Request, res: Response) => {
     
     // Validate validator project URL, base key
     const [validator] = await connection.execute(
-      'SELECT url, base_key FROM backend_services WHERE project = ?',
-      [validatorProject]
+      'SELECT url, base_key FROM backend_services WHERE project = ? AND url = ?',
+      [validatorProject, validatorUrl]
     );
     if (!(validator as BackendService[]).length || 
-      validator[0].url !== validatorUrl || 
       validator[0].base_key !== validatorBase) {
       dd('validator Project/URL/key mismatch')
       return res.status(403).json({ valid: false, error: 'access denied' });
