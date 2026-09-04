@@ -1,6 +1,6 @@
 import createPool from './db_connection'
-import { handleDatabaseError } from './db_handle_error.js'
-import { logger } from '../utils/logger.js'
+import { handleDatabaseError } from './db_handle_error.ts'
+import { logger } from '../utils/logger.ts'
 
 
 async function checkDBConnection() {

@@ -1,4 +1,4 @@
-import { getPublicIP } from './get_public_ip.js'
+import { getPublicIP } from './get_public_ip.ts'
 
 const handleDatabaseError = async (error, logger) => {
     logger.error('Database error:', error);
