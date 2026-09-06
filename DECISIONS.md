@@ -118,3 +118,25 @@ Progress:
 - `/get-token`: requester query now `WHERE project = ? AND url = ?`, checks `base_key` only (URL matched in SQL). Target query now `WHERE project = ? AND url = ?`, only checks row exists.
 - `/validate`: validator query now `WHERE project = ? AND url = ?`, checks `base_key` only.
 - `npx tsc --noEmit` passes (exit 0).
+
+## 2026-09-06 — serf totp: /safe/get/v2 500 (timeout then 500). Root cause найдено.
+
+### Planned
+1. Диагноз: get-token переиспользует любой живой токен для (target,requester,target_url),
+   НЕ сверяясь с requester_url. Токен id=379 (target safe@back, requester totp@back-d,
+   requester_url=http://68.220.61.162 — старый деплой totp) отдан workflow для нового
+   IP 20.171.127.99 → key /validate отвечает 403 (requester_url mismatch) → safe
+   validateApiKey ловит axios-ошибку → 500 'Token validation failed'.
+2. Fix key/back get-token: добавить `AND requester_url = ?` в SELECT существующего токена.
+3. Проверить: npx tsc --noEmit.
+### Result
+- Fix применён в `back/app.ts` `/get-token`: existing-token SELECT теперь фильтрует
+  `AND requester_url = ?` (передаю requesterUrl). Токен переиспользуется только тем же
+  деплоем (тот же url), иначе генерируется новый, привязанный к текущему url.
+- `npx tsc --noEmit` — exit 0.
+- Доп. факт: exchange-for-lares.onrender.com сейчас едва отвечает (free tier,
+  cold start >18-30с, TLS-handshake таймаут даже на /get-updates) — это вторая причина
+  "timeout of 30000ms exceeded" в шаге safe/get/v2. Стоит следить/тёплый пинг.
+- Старый токен id=379 (requester_url=68.220.61.162) в БД оставлен — истечёт сегодня
+  18:23Z; после деплоя фикса он переиспользоваться не будет.
+- REDEPLOY: ключ надо перевыпустить (push в render). Я не пушу без явного запроса.

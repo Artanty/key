@@ -159,8 +159,8 @@ app.post('/get-token', async (req: Request, res: Response) => {
     // Check for existing token
     const [existingToken] = await connection.execute(
       `SELECT api_key, expires_at FROM api_tokens 
-     WHERE target = ? AND requester = ? AND target_url = ? AND expires_at > NOW()`,
-      [targetProject, requesterProject, targetUrl]
+     WHERE target = ? AND requester = ? AND target_url = ? AND requester_url = ? AND expires_at > NOW()`,
+      [targetProject, requesterProject, targetUrl, requesterUrl]
     );
 
     if ((existingToken as unknown as ApiToken[]).length) {
