@@ -140,3 +140,25 @@ Progress:
 - Старый токен id=379 (requester_url=68.220.61.162) в БД оставлен — истечёт сегодня
   18:23Z; после деплоя фикса он переиспользоваться не будет.
 - REDEPLOY: ключ надо перевыпустить (push в render). Я не пушу без явного запроса.
+
+## 2026-09-06 — safe→key /validate 403 access denied (url mismatch). Fireby project+base_key
+
+### Planned
+1. safe шлёт X-Project-Id safe@back (fix ok), но X-Project-Domain-Name = http://mana-7fo0.onrender.com,
+   а последняя регистрация safe@back = url 74.220.48.235 (getPublicIP), row
+   https://mana-7fo0.onrender.com тоже есть. key ищет backend_services WHERE project AND url →
+   нет совпадения → 403 'access denied'.
+2. Fix key/back /validate: матчить валидатора по `project` + совпадение `base_key`
+   (любая строка проекта), НЕ по url — base_key это секрет-кред, url изменчив
+   (http/https, IP/домен).
+3. npx tsc --noEmit.
+### Results (после деплоя my fix в safe: X-Project-Id уже safe@back)
+- /validate всё ещё 403 'access denied': safe шлёт X-Project-Domain-Name=http://mana...
+  (render терминирует TLS, req.protocol=http), а регистрация safe@back = url 74.220.48.235
+  + row https://mana-7fo0.onrender.com → нет совпадения (project,url) в backend_services.
+- Fix1 применён: валидатор матчится по project + любой base_key (url больше не входит).
+- Fix2 применён: сравнение target_url/requester_url токена — через sameEndpoint
+  (схема http(s)+trailing slash игнорируются). Токен 387 (url 52.157.32.49) и
+  validatorUrl http://mana... теперь сходятся:
+  - token target/safe, normalized target_url(+), requester totp@back-d(+), requester_url(+).
+- npx tsc --noEmit — exit 0. Нужен push key.

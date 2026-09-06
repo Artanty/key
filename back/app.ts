@@ -226,14 +226,16 @@ app.post('/validate', async (req: Request, res: Response) => {
   try {
     await connection.beginTransaction();
     
-    // Validate validator project URL, base key
-    const [validator] = await connection.execute(
-      'SELECT url, base_key FROM backend_services WHERE project = ? AND url = ?',
-      [validatorProject, validatorUrl]
+    // Validate validator project by base key (url is volatile: http/https, ip/domain)
+    const [validators] = await connection.execute(
+      'SELECT url, base_key FROM backend_services WHERE project = ?',
+      [validatorProject]
     );
-    if (!(validator as BackendService[]).length || 
-      validator[0].base_key !== validatorBase) {
-      dd('validator Project/URL/key mismatch')
+    const validatorsRows = validators as BackendService[];
+    const validatorOk = validatorsRows.length > 0 &&
+      validatorsRows.some((v) => v.base_key === validatorBase);
+    if (!validatorOk) {
+      dd('validator Project/base key mismatch')
       return res.status(403).json({ valid: false, error: 'access denied' });
     }
 
@@ -247,32 +249,37 @@ app.post('/validate', async (req: Request, res: Response) => {
 
     dd(token);
 
-    if (!(token as ApiToken[]).length || 
-      token[0].target !== validatorProject || 
-      token[0].target_url !== validatorUrl || 
-      token[0].requester !== requesterProject ||
-      token[0].requester_url !== requesterUrl) {
+    const tokens = token as ApiToken[];
+    const sameEndpoint = (a: unknown, b: unknown): boolean =>
+      String(a ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '') ===
+      String(b ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '');
+
+    if (!tokens.length ||
+      tokens[0].target !== validatorProject ||
+      !sameEndpoint(tokens[0].target_url, validatorUrl) ||
+      tokens[0].requester !== requesterProject ||
+      !sameEndpoint(tokens[0].requester_url, requesterUrl)) {
       // Log each check individually to see what's causing the issue
       let reasons: string[] = [];
 
-      if (!(token as ApiToken[]).length) {
+      if (!tokens.length) {
         reasons.push("No tokens found");
       }
 
-      if (token[0].target !== validatorProject) {
-        reasons.push(`Target mismatch: expected ${validatorProject}, got ${token[0].target}`);
+      if (tokens[0].target !== validatorProject) {
+        reasons.push(`Target mismatch: expected ${validatorProject}, got ${tokens[0].target}`);
       }
 
-      if (token[0].target_url !== validatorUrl) {
-        reasons.push(`Target URL mismatch: expected ${validatorUrl}, got ${token[0].target_url}`);
+      if (!sameEndpoint(tokens[0].target_url, validatorUrl)) {
+        reasons.push(`Target URL mismatch: expected ${validatorUrl}, got ${tokens[0].target_url}`);
       }
 
-      if (token[0].requester !== requesterProject) {
-        reasons.push(`Requester mismatch: expected ${requesterProject}, got ${token[0].requester}`);
+      if (tokens[0].requester !== requesterProject) {
+        reasons.push(`Requester mismatch: expected ${requesterProject}, got ${tokens[0].requester}`);
       }
 
-      if (token[0].requester_url !== requesterUrl) {
-        reasons.push(`Requester URL mismatch: expected ${requesterUrl}, got ${token[0].requester_url}`);
+      if (!sameEndpoint(tokens[0].requester_url, requesterUrl)) {
+        reasons.push(`Requester URL mismatch: expected ${requesterUrl}, got ${tokens[0].requester_url}`);
       }
 
       console.error('Validation failed:', reasons.join(', '));
@@ -281,7 +288,7 @@ app.post('/validate', async (req: Request, res: Response) => {
     dd('api validate SUCCEED');
     res.json({ 
       valid: true, 
-      requester: token[0].requester
+      requester: tokens[0].requester
     });
   } catch (error) {
     await connection.rollback();
